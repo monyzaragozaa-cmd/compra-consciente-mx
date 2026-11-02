@@ -1,0 +1,14 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { comparePurchases, formatMXN } from '../src/lib/calculations.ts';
+const valeria={income:16000,expenses:9000,obligations:2000,existingSavingsGoal:1500,purchasePrice:9000,installmentCount:6,totalPayable:9600,additionalMonthlySavings:1500};
+const diego={income:9000,expenses:6500,obligations:500,existingSavingsGoal:500,purchasePrice:6000,installmentCount:6,totalPayable:6000,additionalMonthlySavings:750};
+function good(x:Parameters<typeof comparePurchases>[0]){const r=comparePurchases(x);assert.equal(r.ok,true,JSON.stringify(r));if(!r.ok)throw Error('invalid');return r.value}
+test('Valeria: three scenarios and fees',()=>{const x=good(valeria);assert.equal(x.baselineCentavos,350000);assert.equal(x.buyNow.remainderCentavos,-550000);assert.equal(x.installments.complete,true);if(x.installments.complete){assert.deepEqual(x.installments.monthlyPaymentsCentavos,[160000,160000,160000,160000,160000,160000]);assert.equal(x.installments.financingCostCentavos,60000);assert.equal(x.installments.monthlyRemaindersCentavos[0],190000)}assert.equal(x.waitAndSave.months,6);assert.equal(x.waitAndSave.monthlyRemainderCentavos,200000)});
+test('Diego: typical and low-income stress test',()=>{const a=good(diego);assert.equal(a.baselineCentavos,150000);assert.equal(a.buyNow.remainderCentavos,-450000);assert.equal(a.waitAndSave.months,8);assert.equal(a.waitAndSave.monthlyRemainderCentavos,75000);if(a.installments.complete)assert.equal(a.installments.monthlyRemaindersCentavos[0],50000);const b=good({...diego,income:6500});assert.equal(b.baselineCentavos,-100000);if(b.installments.complete)assert.equal(b.installments.monthlyRemaindersCentavos[0],-200000);assert.equal(b.waitAndSave.monthlyRemainderCentavos,-175000)});
+test('unknown financing cost remains incomplete',()=>{assert.equal(good({...valeria,totalPayable:null}).installments.complete,false)});
+test('centavo remainder allocated to final installment',()=>{const x=good({...valeria,purchasePrice:'1.00',totalPayable:'1.01',installmentCount:3});if(x.installments.complete)assert.deepEqual(x.installments.monthlyPaymentsCentavos,[33,33,35])});
+test('zero savings gives undefined months; already funded gives zero',()=>{assert.equal(good({...valeria,additionalMonthlySavings:0}).waitAndSave.months,null);assert.equal(good({...valeria,earmarkedSavings:9000,additionalMonthlySavings:0}).waitAndSave.months,0)});
+test('invalid values rejected',()=>{for(const change of [{income:'abc'},{purchasePrice:'-1'},{expenses:'1.234'},{installmentCount:0},{installmentCount:1.5},{totalPayable:8000},{earmarkedSavings:10000},{income:Infinity}])assert.equal(comparePurchases({...valeria,...change}).ok,false,JSON.stringify(change))});
+test('zero income and negative remainder allowed',()=>{assert.equal(good({...valeria,income:0}).baselineCentavos,-1250000)});
+test('MXN display',()=>{assert.match(formatMXN(-550000),/5,500/)});
