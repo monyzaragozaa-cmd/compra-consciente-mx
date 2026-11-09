@@ -39,7 +39,37 @@ export default function Home(){
  function change(k:Field,v:string){setFields(p=>({...p,[k]:v}));setErrors(p=>({...p,[k]:''}));}
  return <main className="shell"><header className="header"><div className="brand">🛒 CompraConsciente MX</div><span className="tag">Prevenir · Explorar · Empoderar</span></header>
  <div className="container"><h1>Analiza una compra antes de decidir</h1><p className="lead">Compara tres escenarios, entiende el impacto en tu presupuesto y decide tú.</p>
- {!consent?<section className="panel consent"><h2>Antes de comenzar: tu privacidad</h2><p>Para comparar opciones, escribirás montos de ingresos, gastos y compras. Esta versión realiza los cálculos en tu navegador: <strong>no guarda tus datos financieros, no los envía a una IA y no requiere cuenta.</strong></p><p>Los resultados son estimaciones basadas en los datos que tú introduces. No son una aprobación de crédito ni garantizan que una compra sea segura.</p><label className="check"><input type="checkbox" checked={agreed} onChange={e=>setAgreed(e.target.checked)}/> Comprendo cómo se usarán mis datos y acepto continuar.</label><button disabled={!agreed} onClick={startPersonal} className="primary">Continuar con mis datos</button><button type="button" className="primary" style={{marginTop:12,background:'#6846bd'}} disabled={!agreed} onClick={showExample}>Probar con datos ficticios (sin llenar campos)</button></section>:
+ {!consent?<section className="panel consent"> <div className="notice" style={{ marginTop: 16, marginBottom: 16 }}>
+  <h3>💜 ¿Cómo funciona CompraConsciente MX?</h3>
+  <p>
+    Descubre cómo una compra puede afectar tu presupuesto
+    en tres sencillos pasos:
+  </p>
+  <ol>
+    <li>
+      <strong>Ingresa tus datos:</strong> escribe cuánto ganas,
+      cuánto gastas y cuánto cuesta lo que quieres comprar.
+    </li>
+    <li>
+      <strong>Compara tres opciones:</strong> comprar ahora,
+      pagar a meses o esperar y ahorrar.
+    </li>
+    <li>
+      <strong>Decide con más información:</strong> revisa cuánto
+      dinero te quedaría en cada escenario.
+    </li>
+  </ol>
+  <p>
+    ✨ <strong>¿Solo quieres conocer la aplicación?</strong>
+    Usa el botón "Probar con datos ficticios" para ver un
+    ejemplo sin llenar el formulario.
+  </p>
+  <p>
+    No necesitas hacer cálculos en Excel:
+    CompraConsciente MX compara las opciones por ti.
+    La decisión final siempre es tuya.
+  </p>
+</div><p>Para comparar opciones, escribirás montos de ingresos, gastos y compras. Esta versión realiza los cálculos en tu navegador: <strong>no guarda tus datos financieros, no los envía a una IA y no requiere cuenta.</strong></p><p>Los resultados son estimaciones basadas en los datos que tú introduces. No son una aprobación de crédito ni garantizan que una compra sea segura.</p><label className="check"><input type="checkbox" checked={agreed} onChange={e=>setAgreed(e.target.checked)}/> Comprendo cómo se usarán mis datos y acepto continuar.</label><button disabled={!agreed} onClick={startPersonal} className="primary">Continuar con mis datos</button><button type="button" className="primary" style={{marginTop:12,background:'#6846bd'}} disabled={!agreed} onClick={showExample}>Probar con datos ficticios (sin llenar campos)</button></section>:
  <>{editing?<form onSubmit={calculate} noValidate>{groups.map(group=><section className="panel" key={group.title}><h2>{group.title}</h2><div className="fields">{group.items.map(f=><label className="field" key={f.key}><span>{f.label} (MXN)</span><input inputMode="decimal" autoComplete="off" value={fields[f.key]} onChange={e=>change(f.key,e.target.value)} aria-invalid={Boolean(errors[f.key])} aria-describedby={errors[f.key]?`error-${f.key}`:undefined} placeholder="0.00"/>{f.hint&&<small>{f.hint}</small>}{errors[f.key]&&<small className="error" id={`error-${f.key}`}>{errors[f.key]}</small>}</label>)}</div><div className="fields">{group.title.startsWith('2')&&<label className="field"><span>Número de meses del financiamiento</span><input inputMode="numeric" value={months} onChange={e=>{setMonths(e.target.value);setErrors(p=>({...p,installmentCount:''}));}} aria-invalid={Boolean(errors.installmentCount)}/>{errors.installmentCount&&<small className="error">{errors.installmentCount}</small>}</label>}</div></section>)}<div className="notice">⚠️ <strong>Supuestos:</strong> ingresos y gastos constantes; confirma el costo total con el proveedor. Si tus ingresos varían, prueba también un mes de ingresos bajos.</div><button className="primary" type="submit">Comparar escenarios</button></form>:result&&<section aria-live="polite"><h2>Resultado: comparación de escenarios</h2>{exampleMode&&<div className="notice"><strong>DEMO: DATOS FICTICIOS.</strong> Estas cantidades son un ejemplo y NO representan tu situación financiera. No uses este resultado para decidir una compra real.</div>}<p>Estos resultados son cálculos, no recomendaciones.</p><div className="baseline">Tu presupuesto mensual actual: <strong>{displayMonth(result.baselineCentavos)}</strong><small>Después de gastos, pagos actuales y meta de ahorro.</small></div><article className="scenario now"><h3>🛒 Comprar ahora</h3><p>Saldo del mes de la compra: <strong>{displayMonth(result.buyNow.remainderCentavos)}</strong></p><small>Pago de {displayMonth(result.buyNow.outOfBudgetCostCentavos)} después del ahorro ya destinado a esta compra. Un saldo negativo representa un faltante.</small></article><article className="scenario installment"><h3>📅 Pagar a meses</h3>{result.installments.complete?<><p>Pago mensual: <strong>{displayMonth(result.installments.monthlyPaymentsCentavos[0])}</strong></p><p>Saldo mensual inicial: <strong>{displayMonth(result.installments.monthlyRemaindersCentavos[0])}</strong></p><p>Costo total: {displayMonth(result.installments.totalPayableCentavos)} · Cargos adicionales: {displayMonth(result.installments.financingCostCentavos)}</p><small>Si los centavos no se dividen exactamente, el último pago puede variar. Revisa el calendario y las condiciones reales.</small></>:<p>⚠️ {result.installments.reason} No es posible calcular cuotas verificables.</p>}</article><article className="scenario save"><h3>🐷 Esperar y ahorrar</h3><p>Tiempo estimado: <strong>{result.waitAndSave.months===null?'No calculable':`${result.waitAndSave.months} meses`}</strong></p><p>Saldo mensual mientras ahorras: <strong>{displayMonth(result.waitAndSave.monthlyRemainderCentavos)}</strong></p><small>{result.waitAndSave.alreadyFunded?'El ahorro destinado cubre el precio.':`Falta reunir ${displayMonth(result.waitAndSave.remainingTargetCentavos)}.`} Si el ahorro adicional es cero, no se puede estimar un plazo.</small></article><div className="notice"><strong>Supuestos y posibles incertidumbres</strong><ul>{result.assumptions.map(a=><li key={a}>{a}</li>)}</ul><p>Si tus ingresos cambian, estos resultados también pueden cambiar. Ningún saldo positivo garantiza seguridad financiera.</p></div><div className="decision"><strong>La decisión final siempre es tuya.</strong><p>Esta herramienta informa y compara; no elige por ti ni aprueba créditos.</p></div><button className="primary" onClick={()=>{setEditing(true);setExampleMode(false);log('edit_requested');}}>Modificar datos y recalcular</button>
  <section className="panel" style={{marginTop:20,padding:16}} aria-label="Opinión sobre la experiencia">
  <h2>Cuéntanos tu experiencia</h2>
